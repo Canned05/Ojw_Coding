@@ -9,6 +9,29 @@ class Bubble(pygame.sprite.Sprite):
         self.color = pygame.Color
         self.rect = image.get_rect(center=position)
 
+class Pointer(pygame.sprite.Sprite):
+    def __init__(self, image, position,angle):
+        super().__init__()
+        self.image = image
+        self.rect = image.get_rect(center=position)
+        self.angle = angle
+        self.original_image = image
+        self.position = position
+    
+    def rotate(self, angle):
+        self.angle += angle
+        if self.angle > 170:
+            self.angle = 170
+        elif self.angle < 10:
+            self.angle = 10
+        self.image = pygame.transform.rotozoom(self.original_image, self.angle,1)
+        self.rect = self.image.get_rect(center=self.position)
+
+
+    def draw(self,screen):
+        screen.blit(self.image, self.rect)
+
+
 def setup():
     global map
     map = [
@@ -70,6 +93,8 @@ clock = pygame.time.Clock()
 current_path = os.path.dirname(__file__)
 background = pygame.image.load(os.path.join(current_path, "background.png"))
 
+pointer_image = pygame.image.load(os.path.join(current_path,"pointer.png"))
+pointer = Pointer(pointer_image,(screen_width // 2, 624), 90)
 
 bubble_images = [
     pygame.image.load(os.path.join(current_path, "red.png")).convert_alpha(),
@@ -79,9 +104,18 @@ bubble_images = [
     pygame.image.load(os.path.join(current_path, "purple.png")).convert_alpha(),
     pygame.image.load(os.path.join(current_path, "black.png")).convert_alpha()
 ]
+
+
+
+
 CELL_SIZE = 56
 BUBBLE_WIDTH = 56
 BUBBLE_HEIGHT = 62
+RED = (255,0,0)
+
+to_angle_left = 0
+to_angle_right = 0
+angle_speed = 1.5
 
 map = []
 bubble_group = pygame.sprite.Group()
@@ -96,9 +130,23 @@ while running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             runnung = False
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_LEFT:
+                to_angle_left += angle_speed
+            elif event.key == pygame.K_RIGHT:
+                to_angle_right -= angle_speed
+        
+        if event.type == pygame.KEYUP:
+            if event.key == pygame.K_LEFT:
+                to_angle_left = 0
+            elif event.key == pygame.K_RIGHT:
+                to_angle_right = 0
+
 
     screen.blit(background, (0,0))
     bubble_group.draw(screen)
+    pointer.rotate(to_angle_left + to_angle_right)
+    pointer.draw(screen)
     pygame.display.update()
 
 
