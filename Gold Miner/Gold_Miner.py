@@ -6,12 +6,54 @@ class Claw(pygame.sprite.Sprite):
     def __init__(self, image, position):
         super().__init__()
         self.image = image
+        self.original_image = image
         self.rect = image.get_rect(center=position)
+
+        self.offset = pygame.math.Vector2(default_offset_x_claw,0)
+        self.position = position
+        
+        self.direction = LEFT
+        self.angle_speed = 2.5
+        self.angle = 10
+
+    def update(self, to_x):
+        if self.direction == LEFT:
+            self.angle += self.angle_speed  #이동속도만큼 속도 증가
+        elif self.direction == RIGHT:   #오른쪽 방향으로 이동하고 있다면
+            self.angle -= self.angle_speed  
+        #만약에 허용 각도 범위를 벗어나면?
+        if self.angle > 170:
+            self.angle = 170
+            self.set_direction(RIGHT)
+        elif self.angle < 10:
+            self.angle = 10
+            self.set_direction(LEFT)
+            
+        self.offset.x += to_x
+        self.rotate()#회전 처리
+
+        #rect_center = self.position + self.offset
+       #self.rect = self.image.get_rect(center=rect_center)
+    def rotate(self):
+        self.image = pygame.transform.rotozoom(self.original_image, -self.angle,1) # 회전 대상 이미지, 회전 각도 ,이미지
+
+        offset_rotated = self.offset.rotate(self.angle)
+
+        self.rect = self.image.get_rect(center = self.position+offset_rotated)
+
+        pygame.draw.rect(screen,RED, self.rect, 1)
+
+    def set_direction(self, direction):
+        self.direction = direction
 
     def draw(self, screen):
         screen.blit(self.image, self.rect)
+        pygame.draw.line(screen, BLACK ,self.position , self.rect.center ,5)
 
-
+    def set_init_state(self):
+        self.offset.x = default_offset_x_claw
+        self.angle = 10
+        self.direction = LEFT
 
 #보석 클래스
 class Gemstone(pygame.sprite.Sprite):
@@ -41,6 +83,21 @@ screen_height = 720
 screen = pygame.display.set_mode((screen_width, screen_height))
 pygame.display.set_caption("Gold Miner")
 clock = pygame.time.Clock()
+
+#게임 관련 변수
+default_offset_x_claw = 40 # 중심점으로부터 집계까지의 기본 x 간격
+to_x = 0
+#속도 변수
+move_speed = 12
+return_speed = 20
+#방향 변수
+LEFT = -1
+STOP = 0
+RIGHT = 1
+#색깔 변수
+BLACK = (0,0,0)
+RED = (255,0,0)
+
 #배경 이미지 불러오기
 current_path = os.path.dirname(__file__) #현재 파일의 위치변환
 background = pygame.image.load(os.path.join(current_path,"background.png"))
@@ -69,11 +126,23 @@ while running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            claw.set_direction(STOP)
+            to_x = move_speed
+
+    if claw.rect.left < 0 or claw.rect.right > screen_width or claw.rect.bottom > screen_height:
+        to_x = -return_speed
+
+    if claw.offset.x < default_offset_x_claw:
+        to_x = 0
+        claw.set_init_state()
+
 
     screen.blit(background,(0,0))
     gemstone_group.draw(screen)
+    claw.update(to_x)
     claw.draw(screen)
-    
+        
 
     pygame.display.update()
 
